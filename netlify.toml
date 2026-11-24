@@ -1,0 +1,6 @@
+# NOVA 3.0 is a plain static site: a single self-contained HTML file in docs/.
+# There is no framework, package manager or build step, so Netlify just
+# publishes the docs/ folder as-is.
+[build]
+  publish = "docs"
+  command = ""
