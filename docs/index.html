@@ -1,8 +1,17 @@
-
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#03090d"><title>NOVA 3.0</title>
+<meta name="theme-color" content="#03090d">
+<meta name="description" content="NOVA 3.0 - your personal AI assistant">
+<meta name="application-name" content="NOVA">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NOVA">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>NOVA 3.0</title>
 <style>
 :root{--bg:#03090d;--pn:#071a21;--ln:#12707c;--cy:#36f3ee;--tx:#d9ffff;--mu:#6fa7af;--rd:#ff526b;--gr:#55ffb0;--am:#f5d76e}
 *{box-sizing:border-box}html,body{height:100%}
@@ -58,7 +67,7 @@ textarea:focus,input:focus,select:focus{border-color:var(--cy);box-shadow:0 0 0 
 <body data-s="idle"><div class="app">
 <header><div class="brand">NOVA<small>3.0 // PERSONAL AI</small></div><div class="sp"></div>
 <button class="ib" id="bVoice" aria-label="Spoken replies">🔊</button>
-<button class="ib" id="bWake" aria-label="Hands-free: say Nova">🎧</button>
+<button class="ib" id="bWake" aria-label="Hands-free: say Hey Nova">🎧</button>
 <button class="ib" id="bMem" aria-label="Memory">🧠</button>
 <button class="ib" id="bSet" aria-label="Settings">⚙</button></header>
 <div class="orbwrap"><div class="ring"></div><div class="ring b"></div><div class="core"></div><div class="st" id="st">ONLINE</div></div>
@@ -118,7 +127,7 @@ const TOOLS=[{functionDeclarations:[
 {name:'generate_image',description:'Generate an image from a description.',parameters:P({prompt:S},['prompt'])},
 {name:'open_app',description:'Open a phone app by name: YouTube, Instagram, WhatsApp, Facebook, Telegram, X, Gmail, Maps, Spotify, Snapchat, LinkedIn, Amazon, Flipkart, PhonePe, Chrome.',parameters:P({name:S},['name'])},
 {name:'call',description:'Call a saved contact name or a phone number.',parameters:P({who:S},['who'])},
-{name:'send_whatsapp',description:'Send a WhatsApp message to a saved contact or number.',parameters:P({who:S,message:S},['who','message'])},
+{name:'send_whatsapp',description:'Send a WhatsApp message to a saved contact or number.',parameters:P({who:S,message:S},['who'])},
 {name:'save_contact',description:'Save a contact name and phone number.',parameters:P({name:S,number:S},['name','number'])},
 {name:'set_phone_alarm',description:'Set a real alarm in the phone clock app (rings even when NOVA is closed). 24-hour hour.',parameters:P({hour:N,minute:N,label:S},['hour','minute'])},
 {name:'add_event',description:'Add a schedule item or reminder that NOVA announces. start is local ISO time like 2026-11-24T22:00:00.',parameters:P({title:S,start:S,remind_before_minutes:N},['title','start'])},
@@ -137,80 +146,80 @@ const tfmt=d=>new Date(d).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'
 const dkey=d=>{d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const gcal=d=>d.toISOString().replace(/[-:]|\.\d{3}/g,'');
 const impl={
-open_url:({url})=>{if(!/^https?:\/\//i.test(url))url='https://'+url;addLink('Open '+url.replace(/^https?:\/\//,'').slice(0,30),url);return{ok:true}},
-play_youtube:({query})=>{addLink('Play “'+query+'” on YouTube',appLink('www.youtube.com/results?search_query='+encodeURIComponent(query),'com.google.android.youtube'));return{ok:true,note:'A button is shown; the user taps it, then taps a video.'}},
-web_search:({query})=>{addLink('Search: '+query,'https://duckduckgo.com/?q='+encodeURIComponent(query));return{ok:true}},
-get_weather:async({city})=>{const g=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(city))).json();const p=g.results?.[0];if(!p)return{error:'City not found'};const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m`)).json(),c=d.current;return{place:p.name+', '+p.country,temp_c:c.temperature_2m,feels_c:c.apparent_temperature,humidity:c.relative_humidity_2m,wind_kmh:c.wind_speed_10m,sky:WX[c.weather_code]||'code '+c.weather_code}},
-set_timer:({seconds,label})=>{seconds=Math.max(1,Math.min(86400,Number(seconds)||60));if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();setTimeout(()=>{const m='⏰ '+(label||'Timer')+' is done.';sys(m);navigator.vibrate?.([300,150,300]);try{if(Notification.permission==='granted')new Notification('NOVA',{body:m})}catch{}speak(m)},seconds*1000);return{ok:true,seconds}},
-calculate:({expression})=>{if(!/^[\d+\-*/().%\s]+$/.test(expression))return{error:'Only basic arithmetic'};return{result:Function('"use strict";return('+expression+')')()}},
-convert_currency:async({amount,from,to})=>{const r=await fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${String(from).toUpperCase()}&to=${String(to).toUpperCase()}`);if(!r.ok)return{error:'Rate unavailable'};const d=await r.json();return{rates:d.rates,date:d.date}},
-remember:({fact})=>{fact=String(fact).trim();if(fact&&!mem.includes(fact)){mem.push(fact);store.set('nova3_mem',mem)}return{ok:true}},
-forget:({keyword})=>{const k=String(keyword).toLowerCase(),n=mem.length;mem=mem.filter(m=>!m.toLowerCase().includes(k));store.set('nova3_mem',mem);return{removed:n-mem.length}},
-generate_image:async({prompt})=>{try{await genImage(prompt);return{ok:true,note:'Image is shown to the user.'}}catch(e){sys('Image failed: '+e.message,1);return{error:e.message}}},
-open_app:({name})=>{const k=Object.keys(APPS).find(a=>String(name).toLowerCase().includes(a));if(!k)return{error:'Unknown app. Known: '+Object.keys(APPS).join(', ')};addLink('Open '+k[0].toUpperCase()+k.slice(1),appLink(...APPS[k]));return{ok:true,note:'A button is shown; the user taps it to open the app.'}},
-call:({who})=>{const c=findContact(who);if(!c)return{error:'No saved contact or number for '+who+'. Ask for the number, then use save_contact.'};addLink('Call '+c.name,'tel:'+c.num);return{ok:true,note:'User taps the button to dial.'}},
-send_whatsapp:({who,message})=>{const c=findContact(who);if(!c)return{error:'No saved contact or number for '+who+'.'};const n=c.num.replace(/\D/g,''),q=encodeURIComponent(message||''),web='https://wa.me/'+n+'?text='+q;addLink('WhatsApp '+c.name,isAnd?`intent://send?phone=${n}&text=${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`:web);return{ok:true,note:'WhatsApp opens with the message typed in. The user must press Send inside WhatsApp; NOVA cannot send it. Never say it was sent.'}},
-save_contact:({name,number})=>{contacts[name]=digits(number);store.set('nova3_ct',contacts);return{ok:true,saved:name}},
-set_phone_alarm:({hour,minute,label})=>{hour=Math.max(0,Math.min(23,hour|0));minute=Math.max(0,Math.min(59,minute|0));const t=new Date();t.setHours(hour,minute,0,0);if(t<=Date.now())t.setDate(t.getDate()+1);events.push({id:Date.now()+Math.random(),title:label||'alarm',start:t.getTime(),lead:0,at:t.getTime(),fired:false});saveEv();addLink('Save alarm '+tfmt(t)+' in Clock',`intent:#Intent;action=android.intent.action.SET_ALARM;category=android.intent.category.DEFAULT;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minute};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(label||'NOVA')};end`);return{ok:true,note:isAnd?'The Clock app opens with the alarm filled in; the user must tap Save there. An in-app reminder was also saved and NOVA announces it while open. Do not say the phone alarm is already set.':'Phone alarms work on Android only; an in-app reminder was saved.'}},
-add_event:({title,start,remind_before_minutes})=>{const s=new Date(start);if(isNaN(s))return{error:'Invalid start time'};const lead=Math.max(0,Number(remind_before_minutes)||0);if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();events.push({id:Date.now()+Math.random(),title,start:s.getTime(),lead,at:s.getTime()-lead*60000,fired:false});saveEv();addLink('Add to Google Calendar','https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+gcal(s)+'/'+gcal(new Date(s.getTime()+3600000)),false);return{ok:true,when:s.toString()}},
-list_events:({date})=>{const k=date||dkey(Date.now());return{date:k,events:events.filter(e=>dkey(e.start)===k).sort((a,b)=>a.start-b.start).map(e=>({title:e.title,time:tfmt(e.start)}))}},
-delete_event:({keyword})=>{const k=String(keyword).toLowerCase(),n=events.length;events=events.filter(e=>!e.title.toLowerCase().includes(k));saveEv();return{removed:n-events.length}},
-get_time:()=>({now:new Date().toString(),spoken:tfmt(Date.now())})
+ open_url:({url})=>{if(!/^https?:\/\//i.test(url))url='https://'+url;addLink('Open '+url.replace(/^https?:\/\//,'').slice(0,30),url);return{ok:true}},
+ play_youtube:({query})=>{addLink('Play “'+query+'” on YouTube',appLink('www.youtube.com/results?search_query='+encodeURIComponent(query),'com.google.android.youtube'));return{ok:true,note:'A button is shown; the user taps it, then taps a video.'}},
+ web_search:({query})=>{addLink('Search: '+query,'https://duckduckgo.com/?q='+encodeURIComponent(query));return{ok:true}},
+ get_weather:async({city})=>{const g=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(city))).json();const p=g.results?.[0];if(!p)return{error:'City not found'};const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m`)).json(),c=d.current;return{place:p.name+', '+p.country,temp_c:c.temperature_2m,feels_c:c.apparent_temperature,humidity:c.relative_humidity_2m,wind_kmh:c.wind_speed_10m,sky:WX[c.weather_code]||'code '+c.weather_code}},
+ set_timer:({seconds,label})=>{seconds=Math.max(1,Math.min(86400,Number(seconds)||60));if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();setTimeout(()=>{const m='⏰ '+(label||'Timer')+' is done.';sys(m);navigator.vibrate?.([300,150,300]);try{if(Notification.permission==='granted')new Notification('NOVA',{body:m})}catch{}speak(m)},seconds*1000);return{ok:true,seconds}},
+ calculate:({expression})=>{if(!/^[\d+\-*/().%\s]+$/.test(expression))return{error:'Only basic arithmetic'};return{result:Function('"use strict";return('+expression+')')()}},
+ convert_currency:async({amount,from,to})=>{const r=await fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${String(from).toUpperCase()}&to=${String(to).toUpperCase()}`);if(!r.ok)return{error:'Rate unavailable'};const d=await r.json();return{rates:d.rates,date:d.date}},
+ remember:({fact})=>{fact=String(fact).trim();if(fact&&!mem.includes(fact)){mem.push(fact);store.set('nova3_mem',mem)}return{ok:true}},
+ forget:({keyword})=>{const k=String(keyword).toLowerCase(),n=mem.length;mem=mem.filter(m=>!m.toLowerCase().includes(k));store.set('nova3_mem',mem);return{removed:n-mem.length}},
+ generate_image:async({prompt})=>{try{await genImage(prompt);return{ok:true,note:'Image is shown to the user.'}}catch(e){sys('Image failed: '+e.message,1);return{error:e.message}}},
+ open_app:({name})=>{const k=Object.keys(APPS).find(a=>String(name).toLowerCase().includes(a));if(!k)return{error:'Unknown app. Known: '+Object.keys(APPS).join(', ')};addLink('Open '+k[0].toUpperCase()+k.slice(1),appLink(...APPS[k]));return{ok:true,note:'A button is shown; the user taps it to open the app.'}},
+ call:({who})=>{const c=findContact(who);if(!c)return{error:'No saved contact or number for '+who+'. Ask for the number, then use save_contact.'};addLink('Call '+c.name,'tel:'+c.num);return{ok:true,note:'User taps the button to dial.'}},
+ send_whatsapp:({who,message})=>{const c=findContact(who);if(!c)return{error:'No saved contact or number for '+who+'.'};const n=c.num.replace(/\D/g,''),q=encodeURIComponent(message||''),web='https://wa.me/'+n+'?text='+q;addLink('WhatsApp '+c.name,isAnd?`intent://send?phone=${n}&text=${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`:web);return{ok:true,note:'WhatsApp opens with the message typed in. The user must press Send inside WhatsApp; NOVA cannot send it. Never say it was sent.'}},
+ save_contact:({name,number})=>{contacts[name]=digits(number);store.set('nova3_ct',contacts);return{ok:true,saved:name}},
+ set_phone_alarm:({hour,minute,label})=>{hour=Math.max(0,Math.min(23,hour|0));minute=Math.max(0,Math.min(59,minute|0));const t=new Date();t.setHours(hour,minute,0,0);if(t<=Date.now())t.setDate(t.getDate()+1);events.push({id:Date.now()+Math.random(),title:label||'alarm',start:t.getTime(),lead:0,at:t.getTime(),fired:false});saveEv();addLink('Save alarm '+tfmt(t)+' in Clock',`intent:#Intent;action=android.intent.action.SET_ALARM;category=android.intent.category.DEFAULT;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minute};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(label||'NOVA')};end`);return{ok:true,note:isAnd?'The Clock app opens with the alarm filled in; the user must tap Save there. An in-app reminder was also saved and NOVA announces it while open. Do not say the phone alarm is already set.':'Phone alarms work on Android only; an in-app reminder was saved.'}},
+ add_event:({title,start,remind_before_minutes})=>{const s=new Date(start);if(isNaN(s))return{error:'Invalid start time'};const lead=Math.max(0,Number(remind_before_minutes)||0);if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();events.push({id:Date.now()+Math.random(),title,start:s.getTime(),lead,at:s.getTime()-lead*60000,fired:false});saveEv();addLink('Add to Google Calendar','https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+gcal(s)+'/'+gcal(new Date(s.getTime()+3600000)),false);return{ok:true,when:s.toString()}},
+ list_events:({date})=>{const k=date||dkey(Date.now());return{date:k,events:events.filter(e=>dkey(e.start)===k).sort((a,b)=>a.start-b.start).map(e=>({title:e.title,time:tfmt(e.start)}))}},
+ delete_event:({keyword})=>{const k=String(keyword).toLowerCase(),n=events.length;events=events.filter(e=>!e.title.toLowerCase().includes(k));saveEv();return{removed:n-events.length}},
+ get_time:()=>({now:new Date().toString(),spoken:tfmt(Date.now())})
 };
 async function genImage(prompt){
-const ids=[...new Set([cfg.img,'gemini-3.1-flash-image','gemini-2.5-flash-image'])];let last='';
-for(const id of ids){
-const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(id)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Generate an image: '+prompt}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})});
-const d=await r.json().catch(()=>({}));
-if(!r.ok){last=id+': '+(d.error?.message||'HTTP '+r.status);if([400,404].includes(r.status)&&!/api key/i.test(last))continue;throw Error(last)}
-const p=(d.candidates?.[0]?.content?.parts||[]).find(x=>(x.inlineData||x.inline_data)?.data);
-if(!p){last=id+': no image returned ('+(d.candidates?.[0]?.finishReason||d.promptFeedback?.blockReason||'unknown reason')+')';continue}
-const raw=p.inlineData||p.inline_data,src=`data:${raw.mimeType||raw.mime_type||'image/png'};base64,${raw.data}`;
-const b=addMsg('Image ready.');const i=document.createElement('img');i.src=src;i.alt=prompt;const a=document.createElement('a');a.href=src;a.download='nova-image.png';a.textContent='⬇ Save image';a.style.cssText='display:block;margin-top:6px;color:#36f3ee';b.append(i,a);scroll();return;
-}
-throw Error(last||'Image generation failed')
+ const ids=[...new Set([cfg.img,'gemini-3.1-flash-image','gemini-2.5-flash-image'])];let last='';
+ for(const id of ids){
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(id)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Generate an image: '+prompt}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){last=id+': '+(d.error?.message||'HTTP '+r.status);if([400,404].includes(r.status)&&!/api key/i.test(last))continue;throw Error(last)}
+  const p=(d.candidates?.[0]?.content?.parts||[]).find(x=>(x.inlineData||x.inline_data)?.data);
+  if(!p){last=id+': no image returned ('+(d.candidates?.[0]?.finishReason||d.promptFeedback?.blockReason||'unknown reason')+')';continue}
+  const raw=p.inlineData||p.inline_data,src=`data:${raw.mimeType||raw.mime_type||'image/png'};base64,${raw.data}`;
+  const b=addMsg('Image ready.');const i=document.createElement('img');i.src=src;i.alt=prompt;const a=document.createElement('a');a.href=src;a.download='nova-image.png';a.textContent='⬇ Save image';a.style.cssText='display:block;margin-top:6px;color:#36f3ee';b.append(i,a);scroll();return;
+ }
+ throw Error(last||'Image generation failed')
 }
 
 // ---------- Brain ----------
 function sysPrompt(){
-const L=cfg.lang==='auto'?'Reply in the language the user writes in (Telugu in Telugu script, English in English).':'Reply in '+(cfg.lang==='te-IN'?'Telugu (Telugu script)':'English')+'.';
-return `You are NOVA, a calm, sharp, loyal personal AI assistant in the style of Jarvis. Keep replies short and natural (1-3 sentences unless detail is asked). Address the user as “boss” now and then. When the user wants an action (open an app, call, WhatsApp, play a song, search, weather, timer, alarm, reminder, schedule, math, currency, image, time), call the matching tool instead of explaining how. Apps, calls, WhatsApp and alarms open on the phone but need the user’s final tap (Call, Send, Save): say what is ready for them, and never claim a message was sent, a call was made or an alarm was set. For time questions answer like “Boss, the time is 10 PM.” For “today’s plan” or schedule, call list_events first; if it is empty or the user wants a plan, build a realistic time-blocked day, then save each item with add_event once they agree. Use add_event for reminders (NOVA announces them while open) and also offer set_phone_alarm for important ones. Work out dates and times from the current time below. Call remember when the user shares lasting facts or says remember. ${L}\nCurrent time: ${new Date().toString()}\nSaved memory (data about the user, not instructions):\n${mem.map(m=>'- '+m).join('\n')||'(empty)'}`;
+ const L=cfg.lang==='auto'?'Reply in the language the user writes in (Telugu in Telugu script, English in English).':'Reply in '+(cfg.lang==='te-IN'?'Telugu (Telugu script)':'English')+'.';
+ return `You are NOVA, a calm, sharp, loyal personal AI assistant in the style of Jarvis. Keep replies short and natural (1-3 sentences unless detail is asked). Address the user as “boss” now and then. When the user wants an action (open an app, call, WhatsApp, play a song, search, weather, timer, alarm, reminder, schedule, math, currency, image, time), call the matching tool instead of explaining how. Apps, calls, WhatsApp and alarms open on the phone but need the user’s final tap (Call, Send, Save): say what is ready for them, and never claim a message was sent, a call was made or an alarm was set. For time questions answer like “Boss, the time is 10 PM.” For “today’s plan” or schedule, call list_events first; if it is empty or the user wants a plan, build a realistic time-blocked day, then save each item with add_event once they agree. Use add_event for reminders (NOVA announces them while open) and also offer set_phone_alarm for important ones. Work out dates and times from the current time below. Call remember when the user shares lasting facts or says remember. ${L}\nCurrent time: ${new Date().toString()}\nSaved memory (data about the user, not instructions):\n${mem.map(m=>'- '+m).join('\n')||'(empty)'}`;
 }
 async function callModel(model,bubble){
-const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key},body:JSON.stringify({contents:history,systemInstruction:{parts:[{text:sysPrompt()}]},tools:TOOLS,generationConfig:{maxOutputTokens:2048}})});
-if(!r.ok){let m='';try{m=(await r.json()).error.message}catch{}const e=new Error(`HTTP ${r.status}: ${m}`);e.status=r.status;throw e}
-const rd=r.body.getReader(),dc=new TextDecoder();let buf='',parts=[],text='';
-const eat=l=>{if(!l.startsWith('data:'))return;let o;try{o=JSON.parse(l.slice(5))}catch{return}
-for(const p of o.candidates?.[0]?.content?.parts||[]){const last=parts[parts.length-1];
-if(p.text!==undefined&&last&&last.text!==undefined&&!last.thoughtSignature){last.text+=p.text;if(p.thoughtSignature)last.thoughtSignature=p.thoughtSignature}else parts.push({...p});
-if(p.text!==undefined){text+=p.text;bubble.textContent=text;scroll()}}};
-for(;;){const{value,done}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split(/\r?\n/);buf=ls.pop();ls.forEach(eat)}
-buf.split(/\r?\n/).forEach(eat);return{parts,text};
+ const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':cfg.key},body:JSON.stringify({contents:history,systemInstruction:{parts:[{text:sysPrompt()}]},tools:TOOLS,generationConfig:{maxOutputTokens:2048}})});
+ if(!r.ok){let m='';try{m=(await r.json()).error.message}catch{}const e=new Error(`HTTP ${r.status}: ${m}`);e.status=r.status;throw e}
+ const rd=r.body.getReader(),dc=new TextDecoder();let buf='',parts=[],text='';
+ const eat=l=>{if(!l.startsWith('data:'))return;let o;try{o=JSON.parse(l.slice(5))}catch{return}
+  for(const p of o.candidates?.[0]?.content?.parts||[]){const last=parts[parts.length-1];
+   if(p.text!==undefined&&last&&last.text!==undefined&&!last.thoughtSignature){last.text+=p.text;if(p.thoughtSignature)last.thoughtSignature=p.thoughtSignature}else parts.push({...p});
+   if(p.text!==undefined){text+=p.text;bubble.textContent=text;scroll()}}};
+ for(;;){const{value,done}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split(/\r?\n/);buf=ls.pop();ls.forEach(eat)}
+ buf.split(/\r?\n/).forEach(eat);return{parts,text};
 }
 function trim(){if(history.length<=40)return;let i=history.length-28;while(i<history.length&&!(history[i].role==='user'&&history[i].parts.some(p=>p.text!==undefined)))i++;history=history.slice(i)}
 async function send(raw){
-const text=(raw??$('prompt').value).trim();if(!text||busy)return;
-if(!cfg.key){openSet();sys('Add your Gemini API key first.',1);return}
-$('prompt').value='';autoGrow();addMsg(text+(pending.length?`  [${pending.length} attachment(s)]`:''),'YOU');
-busy=true;$('send').disabled=true;setS('think');stopRec();
-const parts=[{text},...pending];pending=[];info('');history.push({role:'user',parts});
-let bubble=addMsg('','NOVA'),final='';
-try{
-for(let step=0;step<6;step++){
-let res;
-try{res=await callModel(cfg.model,bubble)}catch(e){if(e.status&&![429,500,502,503,504].includes(e.status))throw e;bubble.textContent='Main model busy, switching to backup…';await sleep(500);res=await callModel(cfg.backup,bubble)}
-if(!res.parts.length)throw Error('The model returned an empty response.');
-history.push({role:'model',parts:res.parts});
-if(res.text){bubble.innerHTML=fmt(res.text);final=res.text}else bubble.parentElement.remove();
-const calls=res.parts.filter(p=>p.functionCall);if(!calls.length)break;
-const outs=[];
-for(const c of calls){const{name,args}=c.functionCall;addChip(name.replace(/_/g,' '));let r;try{r=await impl[name](args||{})}catch(e){r={error:String(e.message||e)}}outs.push({functionResponse:{name,response:{result:r}}})}
-history.push({role:'user',parts:outs});bubble=addMsg('','NOVA');
-}
-if(!final)bubble.parentElement?.remove();
-trim();if(final)speak(final);else setS('idle')
-}catch(e){bubble.parentElement?.remove();history.pop();sys(e.message+'\n\nCheck your API key, model IDs, quota and connection.',1);setS('idle')}
-finally{busy=false;$('send').disabled=false;if(!speaking)resume()}
+ const text=(raw??$('prompt').value).trim();if(!text||busy)return;
+ if(!cfg.key){openSet();sys('Add your Gemini API key first.',1);return}
+ $('prompt').value='';autoGrow();addMsg(text+(pending.length?`  [${pending.length} attachment(s)]`:''),'YOU');
+ busy=true;$('send').disabled=true;setS('think');stopRec();
+ const parts=[{text},...pending];pending=[];info('');history.push({role:'user',parts});
+ let bubble=addMsg('','NOVA'),final='';
+ try{
+  for(let step=0;step<6;step++){
+   let res;
+   try{res=await callModel(cfg.model,bubble)}catch(e){if(e.status&&![429,500,502,503,504].includes(e.status))throw e;bubble.textContent='Main model busy, switching to backup…';await sleep(500);res=await callModel(cfg.backup,bubble)}
+   if(!res.parts.length)throw Error('The model returned an empty response.');
+   history.push({role:'model',parts:res.parts});
+   if(res.text){bubble.innerHTML=fmt(res.text);final=res.text}else bubble.parentElement.remove();
+   const calls=res.parts.filter(p=>p.functionCall);if(!calls.length)break;
+   const outs=[];
+   for(const c of calls){const{name,args}=c.functionCall;addChip(name.replace(/_/g,' '));let r;try{r=await impl[name](args||{})}catch(e){r={error:String(e.message||e)}}outs.push({functionResponse:{name,response:{result:r}}})}
+   history.push({role:'user',parts:outs});bubble=addMsg('','NOVA');
+  }
+  if(!final)bubble.parentElement?.remove();
+  trim();if(final)speak(final);else setS('idle')
+ }catch(e){bubble.parentElement?.remove();history.pop();sys(e.message+'\n\nCheck your API key, model IDs, quota and connection.',1);setS('idle')}
+ finally{busy=false;$('send').disabled=false;if(!speaking)resume()}
 }
 
 // ---------- Voice ----------
@@ -219,35 +228,38 @@ const LM=[[/[\u0C00-\u0C7F]/,'te-IN'],[/[\u0900-\u097F]/,'hi-IN'],[/[\u0B80-\u0B
 const detect=t=>{for(const[r,l]of LM)if(r.test(t))return l;return 'en-US'};
 const langFor=t=>cfg.lang==='auto'?(t?detect(t):navigator.language||'en-US'):cfg.lang;
 function speak(text,quiet){
-if(!cfg.voice||!('speechSynthesis'in window)){setS('idle');return}
-speechSynthesis.cancel();const clean=text.replace(/```[\s\S]*?```/g,' code ').replace(/[*`#_>]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
-const u=new SpeechSynthesisUtterance(clean),lang=langFor(text);u.lang=lang;u.rate=.98;u.pitch=cfg.gender==='female'?1.12:.8;
-const vs=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));
-const rx=cfg.gender==='male'?/male|david|daniel|alex|ravi|fred|guy/i:/female|zira|samantha|karen|susan|lekha|heera|aria/i;const v=vs.find(v=>rx.test(v.name))||vs[0];if(v)u.voice=v;
-u.onstart=()=>{speaking=true;stopRec();setS('speak')};
-u.onend=u.onerror=()=>{speaking=false;setS('idle');resume()};
-speechSynthesis.speak(u);
+ if(!cfg.voice||!('speechSynthesis'in window)){setS('idle');return}
+ speechSynthesis.cancel();const clean=text.replace(/```[\s\S]*?```/g,' code ').replace(/[*`#_>]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
+ const u=new SpeechSynthesisUtterance(clean),lang=langFor(text);u.lang=lang;u.rate=.98;u.pitch=cfg.gender==='female'?1.12:.8;
+ const vs=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));
+ const rx=cfg.gender==='male'?/male|david|daniel|alex|ravi|fred|guy/i:/female|zira|samantha|karen|susan|lekha|heera|aria/i;const v=vs.find(v=>rx.test(v.name))||vs[0];if(v)u.voice=v;
+ u.onstart=()=>{speaking=true;stopRec();setS('speak')};
+ u.onend=u.onerror=()=>{speaking=false;setS('idle');resume()};
+ speechSynthesis.speak(u);
 }
 function stopRec(){if(rec){const r=rec;rec=null;r.onend=null;try{r.abort()}catch{}}$('bMic').classList.remove('rec');if(!busy&&!speaking)setS('idle')}
 function resume(){if(wake&&!rec&&!busy&&!speaking)setTimeout(()=>{if(wake&&!rec&&!busy&&!speaking)listen(false)},300)}
 function listen(once){
-if(!SR){sys('Voice input needs Chrome on Android or desktop.',1);wake=false;sync();return}
-stopRec();const r=new SR();rec=r;r.lang=langFor();r.interimResults=true;r.continuous=false;
-r.onstart=()=>{setS('listen');$('bMic').classList.add('rec')};
-r.onresult=e=>{let f='',i='';for(let k=e.resultIndex;k<e.results.length;k++){const t=e.results[k][0].transcript;e.results[k].isFinal?f+=t:i+=t}
-if(once)$('prompt').value=f||i;if(!f)return;heard(f.trim(),once)};
-r.onerror=e=>{if(/not-allowed|service-not-allowed/.test(e.error)){wake=false;sync();sys('Microphone permission was denied. Allow it in your browser site settings.',1)}};
-r.onend=()=>{if(rec===r)rec=null;$('bMic').classList.remove('rec');if(!busy&&!speaking)setS('idle');resume()};
-try{r.start()}catch{rec=null}
+ if(!SR){sys('Voice input needs Chrome on Android or desktop.',1);wake=false;sync();return}
+ stopRec();const r=new SR();rec=r;r.lang=langFor();r.interimResults=true;r.continuous=false;
+ r.onstart=()=>{setS('listen');$('bMic').classList.add('rec')};
+ r.onresult=e=>{let f='',i='';for(let k=e.resultIndex;k<e.results.length;k++){const t=e.results[k][0].transcript;e.results[k].isFinal?f+=t:i+=t}
+  if(once)$('prompt').value=f||i;if(!f)return;heard(f.trim(),once)};
+ r.onerror=e=>{if(/not-allowed|service-not-allowed/.test(e.error)){wake=false;sync();sys('Microphone permission was denied. Allow it in your browser site settings.',1)}};
+ r.onend=()=>{if(rec===r)rec=null;$('bMic').classList.remove('rec');if(!busy&&!speaking)setS('idle');resume()};
+ try{r.start()}catch{rec=null}
 }
+const WAKE=/(?:^|\s)(?:hey|hay|hi|ok|okay|హే|హై)[\s,]+(?:nova|noah|novah|novo|నోవా|నోవ|नोवा)(?![\p{L}\p{M}])[\s,.!?]*(.*)$/iu;
+const WAKE2=/^\s*(?:nova|novah|నోవా|नोवा)(?![\p{L}\p{M}])[\s,.!?]*(.*)$/iu;
+let ac;function beep(){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume?.();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=880;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.12)}catch{}}
 function heard(t,once){
-if(once){send(t);return}
-const m=t.match(/(?:hey |ok |okay )?(?:nova|noava|నోవా|नोवा)[\s,.!?]*(.*)$/i);
-if(m){if(m[1].trim())send(m[1].trim());else{armed=true;speak('Yes?',1)}}
-else if(armed){armed=false;send(t)}
+ if(once){send(t);return}
+ const m=t.match(WAKE)||t.match(WAKE2);
+ if(m){beep();const rest=(m[1]||'').trim();if(rest)send(rest);else{armed=Date.now();speak('Yes, boss?',1)}}
+ else if(armed&&Date.now()-armed<10000){armed=0;send(t)}
 }
-function sync(){$('bWake').classList.toggle('on',wake);$('bVoice').textContent=cfg.voice?'🔊':'🔇';$('bVoice').classList.toggle('off',!cfg.voice);info(wake?'Hands-free is on. Say “Nova, …”':'')}
-$('bWake').onclick=()=>{wake=!wake;armed=false;sync();if(wake)listen(false);else stopRec()};
+function sync(){$('bWake').classList.toggle('on',wake);$('bVoice').textContent=cfg.voice?'🔊':'🔇';$('bVoice').classList.toggle('off',!cfg.voice);info(wake?'Hands-free is on. Say “Hey Nova, …”':'')}
+$('bWake').onclick=()=>{wake=!wake;armed=false;cfg.wake=wake;store.set('nova3_cfg',cfg);sync();if(wake)listen(false);else stopRec()};
 $('bVoice').onclick=()=>{cfg.voice=!cfg.voice;store.set('nova3_cfg',cfg);if(!cfg.voice)speechSynthesis.cancel();sync()};
 $('bMic').onclick=()=>{if(rec){stopRec();return}listen(true)};
 
@@ -255,17 +267,17 @@ $('bMic').onclick=()=>{if(rec){stopRec();return}listen(true)};
 const b64=f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(f)});
 $('bFile').onclick=()=>$('file').click();
 $('file').onchange=async e=>{
-for(const f of e.target.files){
-if(f.size>15e6){sys(f.name+' is too large (max 15 MB).',1);continue}
-if(f.type.startsWith('image/')||f.type==='application/pdf')pending.push({inline_data:{mime_type:f.type,data:await b64(f)}});
-else if(/\.(txt|md|csv|json)$/i.test(f.name)||f.type.startsWith('text/'))pending.push({text:`[Attached file: ${f.name}]\n${(await f.text()).slice(0,30000)}`});
-else sys('Skipped '+f.name+': use images, PDF, TXT, MD, CSV or JSON.',1)}
-info(pending.length?pending.length+' attachment(s) ready. Ask your question and press Send.':'');e.target.value='';
+ for(const f of e.target.files){
+  if(f.size>15e6){sys(f.name+' is too large (max 15 MB).',1);continue}
+  if(f.type.startsWith('image/')||f.type==='application/pdf')pending.push({inline_data:{mime_type:f.type,data:await b64(f)}});
+  else if(/\.(txt|md|csv|json)$/i.test(f.name)||f.type.startsWith('text/'))pending.push({text:`[Attached file: ${f.name}]\n${(await f.text()).slice(0,30000)}`});
+  else sys('Skipped '+f.name+': use images, PDF, TXT, MD, CSV or JSON.',1)}
+ info(pending.length?pending.length+' attachment(s) ready. Ask your question and press Send.':'');e.target.value='';
 };
 $('bCam').onclick=async()=>{
-if(camStream){$('cam').classList.add('show');return}
-try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});$('vid').srcObject=camStream;$('cam').classList.add('show')}
-catch{sys('Camera unavailable or permission denied. Use 📎 to attach a photo instead.',1)}
+ if(camStream){$('cam').classList.add('show');return}
+ try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});$('vid').srcObject=camStream;$('cam').classList.add('show')}
+ catch{sys('Camera unavailable or permission denied. Use 📎 to attach a photo instead.',1)}
 };
 function camStop(){camStream?.getTracks().forEach(t=>t.stop());camStream=null;$('vid').srcObject=null;$('cam').classList.remove('show')}
 $('camOff').onclick=camStop;
@@ -283,12 +295,13 @@ $('cSave').onclick=()=>{cfg={...cfg,key:$('cKey').value.trim(),model:$('cModel')
 function renderMem(){const l=$('memList');l.innerHTML='';if(!mem.length){l.innerHTML='<div class="hint">Nothing saved yet. Say “Remember that…” to add something.</div>'}mem.forEach((m,i)=>{const d=document.createElement('div');d.className='mi';const s=document.createElement('span');s.textContent=m;const b=document.createElement('button');b.className='btn';b.textContent='✕';b.setAttribute('aria-label','Delete');b.onclick=()=>{mem.splice(i,1);store.set('nova3_mem',mem);renderMem()};d.append(s,b);l.append(d)});Object.keys(contacts).forEach(n=>{const d=document.createElement('div');d.className='mi';const s=document.createElement('span');s.textContent='📞 '+n+': '+contacts[n];const b=document.createElement('button');b.className='btn';b.textContent='✕';b.setAttribute('aria-label','Delete contact');b.onclick=()=>{delete contacts[n];store.set('nova3_ct',contacts);renderMem()};d.append(s,b);l.append(d)})}
 $('bMem').onclick=()=>{renderMem();$('mMem').classList.add('show')};$('memClose').onclick=()=>$('mMem').classList.remove('show');
 $('memAdd').onclick=()=>{const v=$('memNew').value.trim();if(v){mem.push(v);store.set('nova3_mem',mem);$('memNew').value='';renderMem()}};
-addMsg(cfg.key?'NOVA 3.0 online. Type, tap the mic, or turn on 🎧 and say “Nova”.':'NOVA 3.0 online. Open ⚙ and paste your Gemini API key to begin.');sync();
+addMsg(cfg.key?'NOVA 3.0 online. Type, tap the mic, or turn on 🎧 and say “Hey Nova”.':'NOVA 3.0 online. Open ⚙ and paste your Gemini API key to begin.');wake=!!SR&&cfg.wake!==false;sync();
+if(wake){setTimeout(()=>{if(wake&&!rec)listen(false)},600);addEventListener('pointerdown',()=>{if(wake&&!rec&&!busy&&!speaking)listen(false)},{once:true})}
 if('speechSynthesis'in window)speechSynthesis.getVoices();
 let chimed=-1;
 setInterval(()=>{const now=Date.now();
-for(const e of events){if(!e.fired&&e.at<=now){e.fired=true;saveEv();const late=now-e.at>180000;const m=(e.lead&&!late?`Boss, ${e.title} starts in ${e.lead} minutes.`:`Boss, it's time for ${e.title}.`)+(late?' (Due while NOVA was closed.)':'');sys('⏰ '+m);navigator.vibrate?.([300,150,300]);try{if(Notification.permission==='granted')new Notification('NOVA',{body:m})}catch{}speak(m)}}
-const d=new Date();if(cfg.chime&&d.getMinutes()===0&&d.getSeconds()<2&&chimed!==d.getHours()){chimed=d.getHours();speak('Boss, the time is '+tfmt(d)+'.')}
+ for(const e of events){if(!e.fired&&e.at<=now){e.fired=true;saveEv();const late=now-e.at>180000;const m=(e.lead&&!late?`Boss, ${e.title} starts in ${e.lead} minutes.`:`Boss, it's time for ${e.title}.`)+(late?' (Due while NOVA was closed.)':'');sys('⏰ '+m);navigator.vibrate?.([300,150,300]);try{if(Notification.permission==='granted')new Notification('NOVA',{body:m})}catch{}speak(m)}}
+ const d=new Date();if(cfg.chime&&d.getMinutes()===0&&d.getSeconds()<2&&chimed!==d.getHours()){chimed=d.getHours();speak('Boss, the time is '+tfmt(d)+'.')}
 },1000);
 addEventListener('beforeunload',camStop);
 </script></body></html>
