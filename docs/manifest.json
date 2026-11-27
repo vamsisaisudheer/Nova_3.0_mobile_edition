@@ -1,6 +1,6 @@
 {
-  "name": "NOVA 3.0",
-  "short_name": "NOVA",
+  "name": "NOVA 5.0",
+  "short_name": "NOVA 5.0",
   "description": "Your personal AI assistant",
   "start_url": "./",
   "scope": "./",
